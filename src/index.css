@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+@theme {
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-primary: var(--app-primary);
+  --color-app-on-primary: var(--app-on-primary);
+  --color-app-secondary: var(--app-secondary);
+  --color-app-text: var(--app-text);
+  --color-app-text-muted: var(--app-text-muted);
+  --color-app-input: var(--app-input-bg);
+}
+
+/* 1. DARK (Padrão) */
+:root, [data-theme='dark'] {
+  --app-bg: #031A2B;
+  --app-surface: #031A2B;
+  --app-primary: #009688; /* Teal */
+  --app-on-primary: #ffffff;
+  --app-secondary: #02121E; 
+  --app-text: #ffffff;
+  --app-text-muted: rgba(255, 255, 255, 0.7);
+  --app-input-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* 2. LIGHT */
+[data-theme='light'] {
+  --app-bg: #ffffff;
+  --app-surface: #ffffff;
+  --app-primary: #009688;
+  --app-on-primary: #ffffff;
+  --app-secondary: #F3F4F6;
+  --app-text: #031A2B;
+  --app-text-muted: #042238;
+  --app-input-bg: rgba(3, 26, 43, 0.05);
+}
+
+/* 3. MATRIX */
+[data-theme='matrix'] {
+  --app-bg: #000000;
+  --app-surface: #000000;
+  --app-primary: #848482;
+  --app-on-primary: #ffffff;
+  --app-secondary: #111111;
+  --app-text: #00FF41;
+  --app-text-muted: rgba(0, 255, 65, 0.6);
+  --app-input-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* 4. BARBIE */
+[data-theme='barbie'] {
+  --app-bg: #FCE4EC;
+  --app-surface: #ffffff;
+  --app-primary: #00B4D8;
+  --app-on-primary: #ffffff;
+  --app-secondary: #E91E63;
+  --app-text: #C2185B;
+  --app-text-muted: rgba(194, 24, 91, 0.7);
+  --app-input-bg: rgba(233, 30, 99, 0.1);
+}
+
+/* 5. KILL BILL */
+[data-theme='killbill'] {
+  --app-bg: #1A1A1A;
+  --app-surface: #1A1A1A;
+  --app-primary: #8B0000;
+  --app-on-primary: #FFD700;
+  --app-secondary: #000000;
+  --app-text: #FFD700;
+  --app-text-muted: rgba(255, 215, 0, 0.7);
+  --app-input-bg: rgba(255, 215, 0, 0.1);
+}
+
+/* 6. BLADE RUNNER */
+[data-theme='bladerunner'] {
+  --app-bg: #0D1117;
+  --app-surface: #0D1117;
+  --app-primary: #FF8C00;
+  --app-on-primary: #000000;
+  --app-secondary: #000000;
+  --app-text: #00CED1;
+  --app-text-muted: rgba(0, 206, 209, 0.7);
+  --app-input-bg: rgba(0, 206, 209, 0.1);
+}
+
+/* 7. GRAND BUDAPEST */
+[data-theme='grandbudapest'] {
+  --app-bg: #F4A7B9;
+  --app-surface: #F4A7B9;
+  --app-primary: #673AB7;
+  --app-on-primary: #ffffff;
+  --app-secondary: #E89EAE;
+  --app-text: #673AB7;
+  --app-text-muted: rgba(103, 58, 183, 0.7);
+  --app-input-bg: rgba(103, 58, 183, 0.1);
+}
+
+/* 8. THE BATMAN */
+[data-theme='batman'] {
+  --app-bg: #000000;
+  --app-surface: #000000;
+  --app-primary: #E61919;
+  --app-on-primary: #ffffff;
+  --app-secondary: #1A1A1A;
+  --app-text: #E61919;
+  --app-text-muted: rgba(230, 25, 25, 0.7);
+  --app-input-bg: rgba(255, 255, 255, 0.15);
+}
+
+/* 9. AMÉLIE */
+[data-theme='amelie'] {
+  --app-bg: #F5E6CA;
+  --app-surface: #F5E6CA;
+  --app-primary: #1B4D3E;
+  --app-on-primary: #ffffff;
+  --app-secondary: #E8DDBC;
+  --app-text: #850606;
+  --app-text-muted: rgba(133, 6, 6, 0.7);
+  --app-input-bg: rgba(133, 6, 6, 0.1);
+}
+
+/* 10. 2001: SPACE ODYSSEY */
+[data-theme='2001'] {
+  --app-bg: #ffffff;
+  --app-surface: #ffffff;
+  --app-primary: #D32F2F;
+  --app-on-primary: #ffffff;
+  --app-secondary: #F0F0F0;
+  --app-text: #000000;
+  --app-text-muted: rgba(0, 0, 0, 0.6);
+  --app-input-bg: rgba(0, 0, 0, 0.05);
+}
