@@ -5,30 +5,38 @@ import { type MediaListItem } from '@/types/mediaListItem';
 import { parseFirebaseDate } from '@/utils/dateUtils';
 import { useAuth } from '@/contexts/authContext';
 import { getMoviesByYear, getSeriesByYear } from '@/services/firebase/databaseService';
-import type { Movie, Series } from '@/types';
+import { useDashboardStore } from '@/hooks/useDashboardData'; 
 
 export default function MediaListContainer() {
   const { currentUser } = useAuth();
   const { mediaType, year: urlYear } = useParams();
   const navigate = useNavigate();
 
-  const [items, setItems] = useState<(Movie | Series)[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
   const year = Number(urlYear) || new Date().getFullYear();
   const isMovieType = mediaType === 'movies';
   const typeTitle = isMovieType ? 'Filmes' : 'Séries';
   const mediaTypeSlug = isMovieType ? 'movies' : 'series';
 
-  // Busca os dados diretamente do Firebase baseando-se na URL
+  const { yearMovies, yearSeries } = useDashboardStore();
+  
+  const cachedItems = isMovieType ? yearMovies[year] : yearSeries[year];
+  
+  const [items, setItems] = useState<any[]>(cachedItems || []);
+  const [isLoading, setIsLoading] = useState(!cachedItems || cachedItems.length === 0);
+
   useEffect(() => {
-    async function fetchMediaList() {
+    async function resolveItems() {
       if (!currentUser) return;
-      
-      if (items.length === 0) {
-        setIsLoading(true);
+
+      // Se já temos no cache global, não fazemos nada (abertura instantânea!)
+      if (cachedItems && cachedItems.length > 0) {
+        setItems(cachedItems);
+        setIsLoading(false);
+        return;
       }
 
+      // Se por acaso não estiver no cache (ex: acesso direto por link), buscamos
+      setIsLoading(true);
       try {
         const data = isMovieType 
           ? await getMoviesByYear(currentUser.uid, year)
@@ -42,10 +50,9 @@ export default function MediaListContainer() {
       }
     }
 
-    fetchMediaList();
-  }, [currentUser, mediaType, year]);
+    resolveItems();
+  }, [currentUser, mediaType, year, isMovieType, cachedItems]);
 
-  // Se estiver carregando, mostra um spinner elegante
   if (isLoading) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-app-bg">
@@ -54,7 +61,6 @@ export default function MediaListContainer() {
     );
   }
 
-  // Traduz os objetos do Firebase para a Interface Unificada
   const mappedItems: MediaListItem[] = items.map(item => {
     const title = 'title' in item ? item.title : (item as any).name;
     const originalTitle = 'originalTitle' in item ? item.originalTitle : (item as any).originalName;
