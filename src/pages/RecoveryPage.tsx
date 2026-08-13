@@ -91,7 +91,7 @@ export default function RecoveryPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading || success}
-              className="w-full bg-app-input pl-12 pr-4 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-sm font-medium disabled:opacity-50"
+              className="w-full bg-app-input pl-12 pr-4 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-base font-medium disabled:opacity-50"
               required
             />
           </div>

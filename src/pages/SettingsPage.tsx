@@ -107,7 +107,7 @@ export default function SettingsPage() {
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && canSaveName) handleSaveName(); }}
-                  className="w-full bg-app-input pl-11 pr-4 py-3.5 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all font-medium"
+                  className="w-full bg-app-input pl-11 pr-4 py-3.5 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all font-medium text-base"
                 />
               </div>
             </div>

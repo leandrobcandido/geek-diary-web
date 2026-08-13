@@ -99,7 +99,7 @@ export default function RegisterPage() {
               placeholder="Nome Completo"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-app-input pl-12 pr-4 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-sm font-medium"
+              className="w-full bg-app-input pl-12 pr-4 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-base font-medium"
               required
             />
           </div>
@@ -112,7 +112,7 @@ export default function RegisterPage() {
               placeholder="E-mail"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-app-input pl-12 pr-4 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-sm font-medium"
+              className="w-full bg-app-input pl-12 pr-4 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-base font-medium"
               required
             />
           </div>
@@ -125,7 +125,7 @@ export default function RegisterPage() {
               placeholder="Senha (mín. 6 caracteres)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-app-input pl-12 pr-12 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-sm font-medium"
+              className="w-full bg-app-input pl-12 pr-12 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-base font-medium"
               required
             />
             <button
@@ -145,7 +145,7 @@ export default function RegisterPage() {
               placeholder="Confirmar Senha"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-app-input pl-12 pr-12 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-sm font-medium"
+              className="w-full bg-app-input pl-12 pr-12 py-4 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-base font-medium"
               required
             />
             <button

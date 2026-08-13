@@ -21,7 +21,7 @@ export function SearchInput({ query, onChange, onClear, placeholder, inputRef }:
           placeholder={placeholder}
           value={query}
           onChange={onChange}
-          className="w-full bg-app-input pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:outline-none focus:border-app-primary focus:ring-1 focus:ring-app-primary transition-all text-sm"
+          className="w-full bg-app-input pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:outline-none focus:border-app-primary focus:ring-1 focus:ring-app-primary transition-all text-base"
         />
         {query.length > 0 && (
           <button 

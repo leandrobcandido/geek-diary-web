@@ -35,7 +35,7 @@ export function MediaToolbar({
             placeholder="Buscar título..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-app-input pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-sm"
+            className="w-full bg-app-input pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:outline-none focus:border-app-primary transition-all text-base"
           />
         </div>
       </div>

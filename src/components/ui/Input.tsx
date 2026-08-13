@@ -22,7 +22,7 @@ export function Input({ icon: Icon, type, className = '', ...props }: InputProps
       <input
         type={currentType}
         {...props}
-        className={`w-full bg-app-input ${Icon ? 'pl-12' : 'pl-4'} ${isPasswordType ? 'pr-12' : 'pr-4'} py-3.5 rounded-xl border border-transparent focus:outline-none focus:border-app-primary focus:ring-1 focus:ring-app-primary transition-all text-app-text placeholder-app-textMuted ${className}`}
+        className={`w-full bg-app-input ${Icon ? 'pl-12' : 'pl-4'} ${isPasswordType ? 'pr-12' : 'pr-4'} text-base py-3.5 rounded-xl border border-transparent focus:outline-none focus:border-app-primary focus:ring-1 focus:ring-app-primary transition-all text-app-text placeholder-app-textMuted ${className}`}
       />
       
       {isPasswordType && (
