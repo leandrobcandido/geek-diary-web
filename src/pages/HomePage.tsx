@@ -33,7 +33,7 @@ export default function HomePage() {
   // Estado para controlar a direção da animação do carrossel
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right');
   
-  const handleCardNavigation = (year: number, type: 'movies' | 'series', items: MediaItem[], typeTitle: string) => {
+  const handleCardNavigation = (year: number, type: 'movies' | 'series', items: MediaItem[]) => {
     if (items.length > 0) {
       navigate(`/list/${type}/${year}`);
     } else {
@@ -166,7 +166,7 @@ export default function HomePage() {
               items={yearMovies[referenceYear] || []}
               fallbackImg={noMoviesImg}
               onAddClick={() => navigate(`/search/movies/${referenceYear}`)}
-              onClick={() => handleCardNavigation(referenceYear, 'movies', yearMovies[referenceYear] || [], 'Filmes')}
+              onClick={() => handleCardNavigation(referenceYear, 'movies', yearMovies[referenceYear] || [])}
             />
             
             <MediaSummaryCard 
@@ -174,7 +174,7 @@ export default function HomePage() {
               items={yearSeries[referenceYear] || []}
               fallbackImg={noSeriesImg}
               onAddClick={() => navigate(`/search/series/${referenceYear}`)}
-              onClick={() => handleCardNavigation(referenceYear, 'series', yearSeries[referenceYear] || [], 'Séries')}
+              onClick={() => handleCardNavigation(referenceYear, 'series', yearSeries[referenceYear] || [])}
             />
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function HomePage() {
                   items={yearMovies[year] || []}
                   fallbackImg={noMoviesImg}
                   onAddClick={() => navigate(`/search/movies/${year}`)}
-                  onClick={() => handleCardNavigation(year, 'movies', yearMovies[year] || [], 'Filmes')}
+                  onClick={() => handleCardNavigation(year, 'movies', yearMovies[year] || [])}
                 />
                 
                 <MediaSummaryCard 
@@ -204,7 +204,7 @@ export default function HomePage() {
                   items={yearSeries[year] || []}
                   fallbackImg={noSeriesImg}
                   onAddClick={() => navigate(`/search/series/${year}`)}
-                  onClick={() => handleCardNavigation(year, 'series', yearSeries[year] || [], 'Séries')}
+                  onClick={() => handleCardNavigation(year, 'series', yearSeries[year] || [])}
                 />
               </div>
             </div>

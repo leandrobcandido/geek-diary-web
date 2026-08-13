@@ -1,8 +1,5 @@
 import { 
   getFirestore,
-  initializeFirestore, 
-  persistentLocalCache, 
-  persistentMultipleTabManager,
   doc, 
   collection, 
   getDoc, 
@@ -12,8 +9,7 @@ import {
   arrayUnion, 
   arrayRemove, 
   query, 
-  where, 
-  orderBy, 
+  where,
   limit, 
   getDocs,
   getDocFromCache, // 🔥 NOVO: Busca direta do cache offline
