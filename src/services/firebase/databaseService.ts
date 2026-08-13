@@ -12,8 +12,8 @@ import {
   where,
   limit, 
   getDocs,
-  getDocFromCache, // 🔥 NOVO: Busca direta do cache offline
-  getDocsFromCache // 🔥 NOVO: Busca direta do cache offline
+  getDocFromCache,
+  getDocsFromCache
 } from "firebase/firestore";
 import { app } from "./firebaseConfig";
 import { type Movie, type Series } from "../../types";

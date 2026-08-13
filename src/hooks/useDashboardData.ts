@@ -128,30 +128,33 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
 
 // ============================================================================
-// 2. O HOOK CONECTOR (Mantém a compatibilidade com a HomePage)
+// 2. O HOOK CONECTOR (Corrigido para carregar os anos em qualquer tela)
 // ============================================================================
 export function useDashboardData() {
   const { currentUser } = useAuth();
   const store = useDashboardStore();
-
-  // Dispara a busca inicial quando o componente monta
+  
   useEffect(() => {
     if (currentUser) {
       store.processInitialData(currentUser);
     }
-  }, [currentUser]); // Rodará sempre que o usuário logar/mudar
+  }, [currentUser]); 
 
-  // Cálculos derivados que o componente precisa
   const sortedYearsDesc = [...store.availableYears].sort((a, b) => b - a);
   const visibleDesktopYears = sortedYearsDesc.slice(0, store.desktopVisibleCount);
   const visibleYearsString = visibleDesktopYears.join(',');
 
-  // Carrega os dados visíveis no desktop
+  // Carrega os dados visíveis no desktop e garante sincronia no mobile
   useEffect(() => {
     if (currentUser) {
+      // Garante que o ano de referência atual esteja sempre buscado
+      if (store.referenceYear) {
+        store.fetchMediaForYear(store.referenceYear, currentUser.uid);
+      }
+      
       visibleDesktopYears.forEach(year => store.fetchMediaForYear(year, currentUser.uid));
     }
-  }, [visibleYearsString, currentUser]);
+  }, [visibleYearsString, store.referenceYear, currentUser]);
 
   return {
     isLoading: store.isLoading,
@@ -164,7 +167,6 @@ export function useDashboardData() {
     yearSeries: store.yearSeries,
     sortedYearsDesc,
     visibleDesktopYears,
-    // Fazemos um bind para a HomePage não precisar saber o UID do usuário
     fetchMediaForYear: (year: number) => store.fetchMediaForYear(year, currentUser?.uid || '')
   };
 }
