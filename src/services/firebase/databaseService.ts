@@ -1,4 +1,7 @@
 import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
   getFirestore, 
   doc, 
   collection, 
@@ -18,7 +21,9 @@ import { app } from "./firebaseConfig";
 import { type Movie, type Series } from "../../types";
 
 // Inicializa o Firestore
-export const db = getFirestore(app);
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 
 // ============================================================================
 // REFERÊNCIAS BASE
