@@ -181,15 +181,30 @@ export const deleteMovie = async (uid: string, movie: Movie): Promise<void> => {
 };
 
 export const getMoviesByYear = async (uid: string, year: number): Promise<Movie[]> => {
-  const q = query(moviesColl(uid), where('watchedYear', '==', year), orderBy('watchedDate', 'desc'));
+  const q = query(
+    moviesColl(uid), 
+    where('watchedYear', '==', year)
+  );
+  
   try {
     const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Movie));
+    const movies = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Movie));
+    
+    return movies.sort((a, b) => {
+      const dateA = a.watchedDate ? new Date(a.watchedDate).getTime() : 0;
+      const dateB = b.watchedDate ? new Date(b.watchedDate).getTime() : 0;
+      return dateB - dateA;
+    });
   } catch (e) {
     console.warn(`Rede instável: Buscando filmes de ${year} no cache...`);
     try {
       const snapCache = await getDocsFromCache(q);
-      return snapCache.docs.map(doc => ({ id: doc.id, ...doc.data() } as Movie));
+      const movies = snapCache.docs.map(doc => ({ id: doc.id, ...doc.data() } as Movie));
+      return movies.sort((a, b) => {
+        const dateA = a.watchedDate ? new Date(a.watchedDate).getTime() : 0;
+        const dateB = b.watchedDate ? new Date(b.watchedDate).getTime() : 0;
+        return dateB - dateA;
+      });
     } catch (cacheErr) {
       return [];
     }
@@ -231,15 +246,30 @@ export const deleteSeries = async (uid: string, series: Series): Promise<void> =
 };
 
 export const getSeriesByYear = async (uid: string, year: number): Promise<Series[]> => {
-  const q = query(seriesColl(uid), where('watchedYear', '==', year), orderBy('watchedDate', 'desc'));
+  const q = query(
+    seriesColl(uid), 
+    where('watchedYear', '==', year)
+  );
+  
   try {
     const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Series));
+    const series = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Series));
+    
+    return series.sort((a, b) => {
+      const dateA = a.watchedDate ? new Date(a.watchedDate).getTime() : 0;
+      const dateB = b.watchedDate ? new Date(b.watchedDate).getTime() : 0;
+      return dateB - dateA;
+    });
   } catch (e) {
     console.warn(`Rede instável: Buscando séries de ${year} no cache...`);
     try {
       const snapCache = await getDocsFromCache(q);
-      return snapCache.docs.map(doc => ({ id: doc.id, ...doc.data() } as Series));
+      const series = snapCache.docs.map(doc => ({ id: doc.id, ...doc.data() } as Series));
+      return series.sort((a, b) => {
+        const dateA = a.watchedDate ? new Date(a.watchedDate).getTime() : 0;
+        const dateB = b.watchedDate ? new Date(b.watchedDate).getTime() : 0;
+        return dateB - dateA;
+      });
     } catch (cacheErr) {
       return [];
     }
