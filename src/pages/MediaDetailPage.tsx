@@ -1,20 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useLocation, useNavigate, Navigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Trash2, Calendar, Tag, Clock, PlaySquare, Star } from 'lucide-react';
 
 import { useAuth } from '@/contexts/authContext';
 import { getFullImageURL } from '@/utils/imageUtils';
-import { updateMovie, updateSeries, deleteMovie, deleteSeries } from '@/services/firebase/databaseService';
+import { 
+  updateMovie, 
+  updateSeries, 
+  deleteMovie, 
+  deleteSeries,
+  getMoviesByYear,
+  getSeriesByYear
+} from '@/services/firebase/databaseService';
 
 import DatePicker from '@/components/DatePicker';
 import { Button } from '@/components/ui/Button';
 import { DeleteConfirmModal } from '@/components/media/DeleteConfirmModal';
 
 // ============================================================================
-// TIPAGENS E FUNÇÕES PURAS (Movidas para fora do componente)
+// TIPAGENS E FUNÇÕES PURAS
 // ============================================================================
 interface LocationState {
-  rawItem: any; // Idealmente, tipar com sua interface do Firebase (ex: FirebaseMediaDocument)
+  rawItem: any; 
   typeTitle: string;
   year: number;
 }
@@ -48,17 +55,60 @@ export default function MediaDetailPage() {
   const { currentUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { mediaType, year: urlYear, id } = useParams();
 
   const state = location.state as LocationState | null;
 
+  // Estados principais
+  const [media, setMedia] = useState<any>(state?.rawItem || null);
+  const [isLoading, setIsLoading] = useState(!media);
+  
+  // Estados do formulário
   const [watchedDate, setWatchedDate] = useState<string>('');
   const [userRating, setUserRating] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  // Derivações seguras (usa a URL ou o State)
+  const year = Number(urlYear) || state?.year || new Date().getFullYear();
+  const isMovie = mediaType === 'movies' || state?.typeTitle?.toLowerCase() === 'filmes';
+  const typeTitle = isMovie ? 'Filmes' : 'Séries';
+
+  // 1. EFEITO DE BUSCA (Fallback caso não venha pelo state)
   useEffect(() => {
-    if (state?.rawItem) {
-      const rawDate = state.rawItem.watchedDate;
+    async function fetchMedia() {
+      // Se já temos a mídia (veio do state) ou faltam dados na URL, não faz nada
+      if (media || !currentUser || !id) return;
+
+      try {
+        // Graças ao cache offline do Firebase, essa busca é 100% local e instantânea
+        const list = isMovie 
+          ? await getMoviesByYear(currentUser.uid, year)
+          : await getSeriesByYear(currentUser.uid, year);
+
+        const foundItem = list.find((item: any) => String(item.id) === String(id));
+
+        if (foundItem) {
+          setMedia(foundItem);
+        } else {
+          console.warn("Mídia não encontrada no banco.");
+          navigate('/', { replace: true });
+        }
+      } catch (error) {
+        console.error("Erro ao buscar detalhes da mídia:", error);
+        navigate('/', { replace: true });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchMedia();
+  }, [currentUser, id, isMovie, media, navigate, year]);
+
+  // 2. EFEITO DE POPULAÇÃO DO FORMULÁRIO (Roda assim que a mídia estiver pronta)
+  useEffect(() => {
+    if (media) {
+      const rawDate = media.watchedDate;
       let dateObj = new Date();
       
       if (rawDate) {
@@ -72,17 +122,25 @@ export default function MediaDetailPage() {
         : dateObj.toISOString().split('T')[0];
       
       setWatchedDate(isoDate);
-      setUserRating(state.rawItem.userRating || 0);
+      setUserRating(media.userRating || 0);
     }
-  }, [state]);
+  }, [media]);
 
-  if (!state || !currentUser) {
+  // Bloqueio de tela cheia enquanto busca os dados
+  if (isLoading) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center bg-app-bg">
+        <div className="w-10 h-10 border-4 border-app-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Se a busca falhou ou o usuário não está logado
+  if (!media || !currentUser) {
     return <Navigate to="/" replace />;
   }
 
-  const { rawItem: media, typeTitle, year } = state;
-  const isMovie = typeTitle.toLowerCase() === 'filmes';
-
+  // Extração de dados para renderização visual
   const title = isMovie ? (media.title || 'Sem título') : (media.name || 'Sem título');
   const originalTitle = isMovie ? media.originalTitle : media.originalName;
   const safeReleaseDate = parseSafeDate(isMovie ? media.releaseDate : media.seasonAirDate);

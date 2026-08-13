@@ -35,7 +35,7 @@ export default function HomePage() {
   
   const handleCardNavigation = (year: number, type: 'movies' | 'series', items: MediaItem[], typeTitle: string) => {
     if (items.length > 0) {
-      navigate(`/list/${type}/${year}`, { state: { items, year, typeTitle } });
+      navigate(`/list/${type}/${year}`);
     } else {
       navigate(`/search/${type}/${year}`);
     }

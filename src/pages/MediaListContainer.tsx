@@ -24,15 +24,16 @@ export default function MediaListContainer() {
   useEffect(() => {
     async function fetchMediaList() {
       if (!currentUser) return;
-      setIsLoading(true);
+      
+      if (items.length === 0) {
+        setIsLoading(true);
+      }
 
       try {
-        let data: (Movie | Series)[] = [];
-        if (isMovieType) {
-          data = await getMoviesByYear(currentUser.uid, year);
-        } else {
-          data = await getSeriesByYear(currentUser.uid, year);
-        }
+        const data = isMovieType 
+          ? await getMoviesByYear(currentUser.uid, year)
+          : await getSeriesByYear(currentUser.uid, year);
+        
         setItems(data);
       } catch (error) {
         console.error("Erro ao buscar lista do ano:", error);
@@ -42,7 +43,7 @@ export default function MediaListContainer() {
     }
 
     fetchMediaList();
-  }, [currentUser, mediaType, year, isMovieType]);
+  }, [currentUser, mediaType, year]);
 
   // Se estiver carregando, mostra um spinner elegante
   if (isLoading) {
@@ -76,9 +77,7 @@ export default function MediaListContainer() {
       items={mappedItems}
       onBack={() => navigate(-1)}
       onAddClick={() => navigate(`/search/${mediaTypeSlug}/${year}`)}
-      onItemClick={(item) => navigate(`/detail/${mediaTypeSlug}/${item.id}`, {
-        state: { rawItem: item.rawItem, typeTitle: typeTitle, year: year }
-      })}
+      onItemClick={(item) => navigate(`/detail/${mediaTypeSlug}/${year}/${item.id}`)}
     />
   );
 }

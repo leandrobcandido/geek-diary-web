@@ -37,8 +37,8 @@ export default function App() {
 
             {/* Rotas Privadas protegidas pelo componente wrapper */}
             <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/list/:mediaType/:year" element={<ProtectedRoute><MediaListContainer /></ProtectedRoute>} />
-            <Route path="/detail/:mediaType/:id" element={<ProtectedRoute><MediaDetailPage /></ProtectedRoute>} />
+            <Route path="/list/:mediaType/:year" element={<ProtectedRoute><MediaListContainer /></ProtectedRoute>} />            
+            <Route path="/detail/:mediaType/:year/:id" element={<ProtectedRoute><MediaDetailPage /></ProtectedRoute>} />
             <Route path="/search/:mediaType/:year" element={<ProtectedRoute><MediaSearchPage /></ProtectedRoute>} />
             <Route path="/add/:mediaType/:year/:id" element={<ProtectedRoute><MediaAddPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />

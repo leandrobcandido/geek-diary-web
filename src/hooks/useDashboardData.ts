@@ -12,7 +12,7 @@ export function useDashboardData() {
   const { currentUser } = useAuth();
   
   const [isLoading, setIsLoading] = useState(true);
-  const [availableYears] = useState<number[]>([]);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [referenceYear, setReferenceYear] = useState<number>(new Date().getFullYear());
   const [desktopVisibleCount, setDesktopVisibleCount] = useState<number>(3);
   
@@ -20,6 +20,9 @@ export function useDashboardData() {
   const [yearSeries, setYearSeries] = useState<Record<number, Series[]>>({});
 
   const fetchedYears = useRef<Set<number>>(new Set());
+  
+  // 🔥 NOVO: Criamos uma memória silenciosa que não afeta a renderização do React
+  const initialLoadDone = useRef(false);
 
   const fetchMediaForYear = useCallback(async (year: number) => {
     if (!currentUser || fetchedYears.current.has(year)) return;
@@ -44,14 +47,21 @@ export function useDashboardData() {
 
   const processInitialData = useCallback(async () => {
     if (!currentUser) return;
-    setIsLoading(true);
+    
+    // Só mostramos o loading se for a PRIMEIRA vez que entramos na tela
+    if (!initialLoadDone.current) {
+      setIsLoading(true);
+    }
 
     try {
-      ensureUserExists(currentUser.uid, currentUser.email, currentUser.name)
-        .catch(err => console.error("Erro silencioso ao garantir usuário:", err));
-
+      // ⚠️ VOLTAMOS COM O AWAIT! O Firebase precisa que o documento 
+      // do usuário exista antes de liberar as buscas.
+      await ensureUserExists(currentUser.uid, currentUser.email, currentUser.name);
+      
       const years = await getAvailableYears(currentUser.uid);
       const validYears = years.length > 0 ? years : [new Date().getFullYear()];
+      
+      setAvailableYears(validYears);
       
       const currentCalendarYear = new Date().getFullYear();
       const initialYear = validYears.includes(currentCalendarYear) 
@@ -60,10 +70,13 @@ export function useDashboardData() {
         
       setReferenceYear(initialYear);
       await fetchMediaForYear(initialYear);
+
+      // Marca na memória que os dados iniciais já foram carregados
+      initialLoadDone.current = true;
     } catch (error) {
       console.error("Erro ao processar dados iniciais:", error);
     } finally {
-      setIsLoading(false); // Libera a tela muito mais rápido!
+      setIsLoading(false);
     }
   }, [currentUser, fetchMediaForYear]);
 
