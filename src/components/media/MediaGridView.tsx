@@ -15,7 +15,7 @@ export function MediaGridView({ items, onItemClick, formatDate }: MediaGridViewP
         <div key={item.id} onClick={() => onItemClick(item)} className="flex flex-col gap-0.5 group cursor-pointer">
           <div className="aspect-2/3 bg-app-input rounded-xl overflow-hidden shadow-sm relative border border-transparent group-hover:border-app-primary transition-colors">
             {item.posterPath ? (
-              <img src={getFullImageURL(item.posterPath) || undefined} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <img src={getFullImageURL(item.posterPath) || undefined} alt={item.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
             ) : (
               <div className="w-full h-full flex items-center justify-center opacity-20"><Film size={24} /></div>
             )}

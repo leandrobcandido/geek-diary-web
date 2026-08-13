@@ -38,7 +38,7 @@ export function SeasonCarousel({ seasons, selectedSeasonId, onSelectSeason, fall
             >
               <div className="w-full aspect-2/3 bg-app-input rounded-xl overflow-hidden shadow-inner mb-2 relative">
                 {seasonPoster && (
-                  <img src={seasonPoster} alt={season.name} className="w-full h-full object-cover" />
+                  <img src={seasonPoster} alt={season.name} loading="lazy" className="w-full h-full object-cover" />
                 )}
                 {isSelected && (
                   <div className="absolute inset-0 bg-app-primary/10 border-2 border-app-primary rounded-xl" />

@@ -48,6 +48,7 @@ export function MediaSummaryCard({ title, items, fallbackImg, onAddClick, onClic
       <img 
         src={backdropUrl || fallbackImg} 
         alt={`Capa de ${title}`}
+        loading="lazy"
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
       <div className="absolute inset-0 bg-linear-to-b from-black/80 via-black/20 to-black/90 pointer-events-none"></div>

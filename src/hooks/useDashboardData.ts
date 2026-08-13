@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect } from 'react';
+import { create } from 'zustand';
 import { useAuth } from '@/contexts/authContext';
 import { 
   getAvailableYears, 
@@ -8,101 +9,162 @@ import {
 } from '@/services/firebase/databaseService';
 import type { Movie, Series } from '@/types';
 
-export function useDashboardData() {
-  const { currentUser } = useAuth();
-  
-  const [isLoading, setIsLoading] = useState(true);
-  const [availableYears, setAvailableYears] = useState<number[]>([]);
-  const [referenceYear, setReferenceYear] = useState<number>(new Date().getFullYear());
-  const [desktopVisibleCount, setDesktopVisibleCount] = useState<number>(3);
-  
-  const [yearMovies, setYearMovies] = useState<Record<number, Movie[]>>({});
-  const [yearSeries, setYearSeries] = useState<Record<number, Series[]>>({});
+// ============================================================================
+// 1. A NOSSA LOJA GLOBAL (ZUSTAND STORE)
+// Os dados aqui sobrevivem às trocas de página e não sofrem amnésia!
+// ============================================================================
+interface DashboardState {
+  isLoading: boolean;
+  initialLoadDone: boolean;
+  availableYears: number[];
+  referenceYear: number;
+  desktopVisibleCount: number;
+  yearMovies: Record<number, Movie[]>;
+  yearSeries: Record<number, Series[]>;
+  fetchedYears: number[];
 
-  const fetchedYears = useRef<Set<number>>(new Set());
-  
-  // 🔥 NOVO: Criamos uma memória silenciosa que não afeta a renderização do React
-  const initialLoadDone = useRef(false);
+  // Ações
+  setReferenceYear: (year: number) => void;
+  setDesktopVisibleCount: (updater: number | ((prev: number) => number)) => void;
+  fetchMediaForYear: (year: number, uid: string) => Promise<void>;
+  processInitialData: (user: any) => Promise<void>;
+  resetStore: () => void;
+}
 
-  const fetchMediaForYear = useCallback(async (year: number) => {
-    if (!currentUser || fetchedYears.current.has(year)) return;
+export const useDashboardStore = create<DashboardState>((set, get) => ({
+  isLoading: true,
+  initialLoadDone: false,
+  availableYears: [],
+  referenceYear: new Date().getFullYear(),
+  desktopVisibleCount: 3,
+  yearMovies: {},
+  yearSeries: {},
+  fetchedYears: [],
+
+  setReferenceYear: (year) => set({ referenceYear: year }),
+
+  // Suporta tanto receber um número direto quanto uma função prev => prev + 3
+  setDesktopVisibleCount: (updater) => {
+    if (typeof updater === 'function') {
+      set((state) => ({ desktopVisibleCount: updater(state.desktopVisibleCount) }));
+    } else {
+      set({ desktopVisibleCount: updater });
+    }
+  },
+
+  fetchMediaForYear: async (year, uid) => {
+    const { fetchedYears } = get();
     
-    fetchedYears.current.add(year);
+    // Se o ano já foi buscado e está na memória global, não faz nada!
+    if (fetchedYears.includes(year)) return;
+
+    set({ fetchedYears: [...fetchedYears, year] });
 
     try {
       const [movies, series] = await Promise.all([
-        getMoviesByYear(currentUser.uid, year),
-        getSeriesByYear(currentUser.uid, year)
+        getMoviesByYear(uid, year),
+        getSeriesByYear(uid, year)
       ]);
 
-      setYearMovies(prev => ({ ...prev, [year]: movies }));
-      setYearSeries(prev => ({ ...prev, [year]: series }));
+      set((state) => ({
+        yearMovies: { ...state.yearMovies, [year]: movies },
+        yearSeries: { ...state.yearSeries, [year]: series }
+      }));
     } catch (error) {
       console.error(`Erro ao buscar dados do ano ${year}:`, error);
-      fetchedYears.current.delete(year);
-      setYearMovies(prev => ({ ...prev, [year]: [] }));
-      setYearSeries(prev => ({ ...prev, [year]: [] }));
+      set((state) => ({
+        fetchedYears: state.fetchedYears.filter(y => y !== year), // Remove em caso de erro
+        yearMovies: { ...state.yearMovies, [year]: [] },
+        yearSeries: { ...state.yearSeries, [year]: [] }
+      }));
     }
-  }, [currentUser]); 
+  },
 
-  const processInitialData = useCallback(async () => {
-    if (!currentUser) return;
+  processInitialData: async (user) => {
+    const { initialLoadDone, fetchMediaForYear } = get();
     
-    // Só mostramos o loading se for a PRIMEIRA vez que entramos na tela
-    if (!initialLoadDone.current) {
-      setIsLoading(true);
-    }
+    // Se os dados iniciais já foram carregados nesta sessão, liberamos a tela instantaneamente!
+    if (initialLoadDone) return;
+    
+    set({ isLoading: true });
 
     try {
-      // ⚠️ VOLTAMOS COM O AWAIT! O Firebase precisa que o documento 
-      // do usuário exista antes de liberar as buscas.
-      await ensureUserExists(currentUser.uid, currentUser.email, currentUser.name);
+      await ensureUserExists(user.uid, user.email || '', user.name || '');
       
-      const years = await getAvailableYears(currentUser.uid);
-      const validYears = years.length > 0 ? years : [new Date().getFullYear()];
-      
-      setAvailableYears(validYears);
-      
+      const years = await getAvailableYears(user.uid);
       const currentCalendarYear = new Date().getFullYear();
+      const validYears = years.length > 0 ? years : [currentCalendarYear];
+      
       const initialYear = validYears.includes(currentCalendarYear) 
         ? currentCalendarYear 
         : validYears[validYears.length - 1];
         
-      setReferenceYear(initialYear);
-      await fetchMediaForYear(initialYear);
+      set({ 
+        availableYears: validYears,
+        referenceYear: initialYear
+      });
+      
+      await fetchMediaForYear(initialYear, user.uid);
 
-      // Marca na memória que os dados iniciais já foram carregados
-      initialLoadDone.current = true;
+      set({ initialLoadDone: true });
     } catch (error) {
       console.error("Erro ao processar dados iniciais:", error);
     } finally {
-      setIsLoading(false);
+      set({ isLoading: false });
     }
-  }, [currentUser, fetchMediaForYear]);
+  },
 
+  resetStore: () => set({
+    isLoading: true,
+    initialLoadDone: false,
+    availableYears: [],
+    referenceYear: new Date().getFullYear(),
+    desktopVisibleCount: 3,
+    yearMovies: {},
+    yearSeries: {},
+    fetchedYears: []
+  })
+}));
+
+
+// ============================================================================
+// 2. O HOOK CONECTOR (Mantém a compatibilidade com a HomePage)
+// ============================================================================
+export function useDashboardData() {
+  const { currentUser } = useAuth();
+  const store = useDashboardStore();
+
+  // Dispara a busca inicial quando o componente monta
   useEffect(() => {
-    processInitialData();
-  }, [processInitialData]);
+    if (currentUser) {
+      store.processInitialData(currentUser);
+    }
+  }, [currentUser]); // Rodará sempre que o usuário logar/mudar
 
-  const sortedYearsDesc = [...availableYears].sort((a, b) => b - a);
-  const visibleDesktopYears = sortedYearsDesc.slice(0, desktopVisibleCount);
+  // Cálculos derivados que o componente precisa
+  const sortedYearsDesc = [...store.availableYears].sort((a, b) => b - a);
+  const visibleDesktopYears = sortedYearsDesc.slice(0, store.desktopVisibleCount);
   const visibleYearsString = visibleDesktopYears.join(',');
 
+  // Carrega os dados visíveis no desktop
   useEffect(() => {
-    visibleDesktopYears.forEach(year => fetchMediaForYear(year));
-  }, [visibleYearsString, fetchMediaForYear]);
+    if (currentUser) {
+      visibleDesktopYears.forEach(year => store.fetchMediaForYear(year, currentUser.uid));
+    }
+  }, [visibleYearsString, currentUser]);
 
   return {
-    isLoading,
-    availableYears,
-    referenceYear,
-    setReferenceYear,
-    desktopVisibleCount,
-    setDesktopVisibleCount,
-    yearMovies,
-    yearSeries,
+    isLoading: store.isLoading,
+    availableYears: store.availableYears,
+    referenceYear: store.referenceYear,
+    setReferenceYear: store.setReferenceYear,
+    desktopVisibleCount: store.desktopVisibleCount,
+    setDesktopVisibleCount: store.setDesktopVisibleCount,
+    yearMovies: store.yearMovies,
+    yearSeries: store.yearSeries,
     sortedYearsDesc,
     visibleDesktopYears,
-    fetchMediaForYear
+    // Fazemos um bind para a HomePage não precisar saber o UID do usuário
+    fetchMediaForYear: (year: number) => store.fetchMediaForYear(year, currentUser?.uid || '')
   };
 }

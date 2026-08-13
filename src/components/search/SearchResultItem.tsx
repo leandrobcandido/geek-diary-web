@@ -50,7 +50,7 @@ export function SearchResultItem({ item, onClick, emptyIcon: EmptyIcon }: Search
     >
       <div className="w-14 aspect-2/3 bg-app-input rounded-md overflow-hidden shrink-0 shadow-sm relative">
         {item.posterPath ? (
-          <img src={getFullImageURL(item.posterPath, 'w154') || undefined} alt={getTitle(item)} className="w-full h-full object-cover" />
+          <img src={getFullImageURL(item.posterPath, 'w154') || undefined} alt={getTitle(item)} loading="lazy" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center opacity-30">
             <EmptyIcon size={20} />

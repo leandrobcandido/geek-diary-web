@@ -62,7 +62,7 @@ export default function MediaAddPage() {
   const releaseDate = isMovie ? movieData!.releaseDate : seriesData!.firstAirDate; 
   
   const backdropMobile = richMedia.backdropPath ? getFullImageURL(richMedia.backdropPath, 'w500') : null;
-  const backdropDesktop = richMedia.backdropPath ? getFullImageURL(richMedia.backdropPath, 'original') : null;
+  const backdropDesktop = richMedia.backdropPath ? getFullImageURL(richMedia.backdropPath, 'w1280') : null;
 
   // ==========================================================================
   // SALVAR NO BANCO DE DADOS
@@ -156,6 +156,7 @@ export default function MediaAddPage() {
               srcSet={`${backdropMobile} 500w, ${backdropDesktop} 1280w`}
               sizes="100vw" 
               alt={title} 
+              loading="lazy"
               className="w-full h-full object-cover" 
             />
           ) : (

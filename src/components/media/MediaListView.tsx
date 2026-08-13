@@ -15,7 +15,7 @@ export function MediaListView({ items, onItemClick, formatDate }: MediaListViewP
         <div key={item.id} onClick={() => onItemClick(item)} className="flex items-center gap-4 p-1 rounded-xl border border-transparent hover:border-app-primary transition-colors cursor-pointer group">
           <div className="w-16 sm:w-20 aspect-2/3 bg-app-input rounded-lg overflow-hidden shrink-0">
             {item.posterPath ? (
-              <img src={getFullImageURL(item.posterPath) || undefined} alt={item.title} className="w-full h-full object-cover" />
+              <img src={getFullImageURL(item.posterPath) || undefined} alt={item.title} loading="lazy" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center opacity-20"><Film size={20} /></div>
             )}

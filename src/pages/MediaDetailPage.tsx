@@ -148,7 +148,7 @@ export default function MediaDetailPage() {
   
   const backdropMobile = media.backdropPath ? getFullImageURL(media.backdropPath, 'w500') : null;
   const backdropDesktop = media.backdropPath ? getFullImageURL(media.backdropPath, 'w1280') : null;
-  const seasonPosterUrl = media.seasonPosterPath ? getFullImageURL(media.seasonPosterPath) : null;
+  const seasonPosterUrl = media.seasonPosterPath ? getFullImageURL(media.seasonPosterPath, 'w342') : null;
 
   // ==========================================================================
   // AÇÕES
@@ -228,6 +228,7 @@ export default function MediaDetailPage() {
               srcSet={`${backdropMobile} 500w, ${backdropDesktop} 1280w`}
               sizes="100vw" 
               alt={title} 
+              loading="lazy"
               className="w-full h-full object-cover" 
             />
           ) : (
@@ -255,7 +256,7 @@ export default function MediaDetailPage() {
             <div className="bg-app-secondary rounded-2xl p-4 flex gap-4 mb-4 h-36 sm:h-44 items-stretch">
               <div className="h-full aspect-2/3 bg-app-input rounded-lg overflow-hidden shrink-0 shadow-inner">
                 {seasonPosterUrl ? (
-                  <img src={seasonPosterUrl} alt="Season" className="w-full h-full object-cover" />
+                  <img src={seasonPosterUrl} alt="Season" loading="lazy" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center opacity-20">
                     <PlaySquare size={24} />

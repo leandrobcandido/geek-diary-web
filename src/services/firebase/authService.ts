@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { app } from "./firebaseConfig";
 import { ensureUserExists, updateUserNameInDb } from "./databaseService";
+import { useDashboardStore } from "@/hooks/useDashboardData"; 
 
 // Inicializa o serviço de Auth passando o app configurado
 export const auth = getAuth(app);
@@ -87,5 +88,10 @@ export const sendPasswordReset = async (email: string): Promise<void> => {
 };
 
 export const logout = async (): Promise<void> => {
-  await signOut(auth);
+  try {
+    await signOut(auth);
+    useDashboardStore.getState().resetStore();
+  } catch (error) {
+    console.error("Erro ao realizar logout:", error);
+  }
 };
