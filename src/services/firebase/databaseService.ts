@@ -1,4 +1,5 @@
 import { 
+  getFirestore,
   initializeFirestore, 
   persistentLocalCache, 
   persistentMultipleTabManager,
@@ -21,9 +22,10 @@ import {
 import { app } from "./firebaseConfig";
 import { type Movie, type Series } from "../../types";
 
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
+// export const db = initializeFirestore(app, {
+//   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+// });
+export const db = getFirestore(app);
 
 const userDoc = (uid: string) => doc(db, 'users', uid);
 const moviesColl = (uid: string) => collection(db, 'users', uid, 'watchedMovies');
