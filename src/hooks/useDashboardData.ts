@@ -12,7 +12,7 @@ export function useDashboardData() {
   const { currentUser } = useAuth();
   
   const [isLoading, setIsLoading] = useState(true);
-  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [availableYears] = useState<number[]>([]);
   const [referenceYear, setReferenceYear] = useState<number>(new Date().getFullYear());
   const [desktopVisibleCount, setDesktopVisibleCount] = useState<number>(3);
   
@@ -47,11 +47,11 @@ export function useDashboardData() {
     setIsLoading(true);
 
     try {
-      await ensureUserExists(currentUser.uid, currentUser.email, currentUser.name);
+      ensureUserExists(currentUser.uid, currentUser.email, currentUser.name)
+        .catch(err => console.error("Erro silencioso ao garantir usuário:", err));
+
       const years = await getAvailableYears(currentUser.uid);
       const validYears = years.length > 0 ? years : [new Date().getFullYear()];
-      
-      setAvailableYears(validYears);
       
       const currentCalendarYear = new Date().getFullYear();
       const initialYear = validYears.includes(currentCalendarYear) 
@@ -63,7 +63,7 @@ export function useDashboardData() {
     } catch (error) {
       console.error("Erro ao processar dados iniciais:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Libera a tela muito mais rápido!
     }
   }, [currentUser, fetchMediaForYear]);
 
