@@ -2,7 +2,6 @@ import {
   initializeFirestore, 
   persistentLocalCache, 
   persistentMultipleTabManager,
-  getFirestore, 
   doc, 
   collection, 
   getDoc, 
