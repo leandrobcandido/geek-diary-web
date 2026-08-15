@@ -168,7 +168,18 @@ export default function MediaDetailPage() {
       } else {
         await updateSeries(currentUser.uid, updatedMedia, year);
       }
-      navigate(-1);
+      
+      // 🔥 Força o Zustand a atualizar o ano e puxar os novos sumários
+      const store = await import('@/hooks/useDashboardData').then(m => m.useDashboardStore.getState());
+      await store.forceRefreshYear(updatedMedia.watchedYear, currentUser.uid);
+      
+      // Se trocou de ano durante a edição, invalida o ano antigo também!
+      if (updatedMedia.watchedYear !== year) {
+        await store.forceRefreshYear(year, currentUser.uid);
+      }
+
+      // Retorna para a tela de listagem
+      navigate(`/list/${mediaType}/${updatedMedia.watchedYear}`, { replace: true });
     } catch (error) {
       console.error("Erro ao atualizar:", error);
       alert("Ocorreu um erro ao salvar as alterações.");
@@ -185,6 +196,12 @@ export default function MediaDetailPage() {
       } else {
         await deleteSeries(currentUser.uid, media);
       }
+
+      // 🔥 Força o Zustand a remover o filme do cache e atualizar os sumários
+      const store = await import('@/hooks/useDashboardData').then(m => m.useDashboardStore.getState());
+      await store.forceRefreshYear(year, currentUser.uid);
+
+      // Retorna para a HomePage, pois a lista de origem pode ter ficado vazia
       navigate('/', { replace: true });
     } catch (error) {
       console.error("Erro ao excluir:", error);

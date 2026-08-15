@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import MediaListPage from '@/pages/MediaListPage';
 import { type MediaListItem } from '@/types/mediaListItem';
 import { parseFirebaseDate } from '@/utils/dateUtils';
 import { useAuth } from '@/contexts/authContext';
-import { getMoviesByYear, getSeriesByYear } from '@/services/firebase/databaseService';
 import { useDashboardStore } from '@/hooks/useDashboardData'; 
 
 export default function MediaListContainer() {
@@ -17,43 +16,22 @@ export default function MediaListContainer() {
   const typeTitle = isMovieType ? 'Filmes' : 'Séries';
   const mediaTypeSlug = isMovieType ? 'movies' : 'series';
 
-  const { yearMovies, yearSeries } = useDashboardStore();
+  // 🔥 Puxamos tudo do Zustand. Ele é a nossa única fonte de verdade agora!
+  const { yearMovies, yearSeries, fetchedYears, fetchMediaForYear } = useDashboardStore();
   
-  const cachedItems = isMovieType ? yearMovies[year] : yearSeries[year];
-  
-  const [items, setItems] = useState<any[]>(cachedItems || []);
-  const [isLoading, setIsLoading] = useState(!cachedItems || cachedItems.length === 0);
+  // O Zustand sabe exatamente se esse ano já foi baixado ou não
+  const isDataLoaded = fetchedYears.includes(year);
+  const rawItems = isMovieType ? (yearMovies[year] || []) : (yearSeries[year] || []);
 
   useEffect(() => {
-    async function resolveItems() {
-      if (!currentUser) return;
-
-      // Se já temos no cache global, não fazemos nada (abertura instantânea!)
-      if (cachedItems && cachedItems.length > 0) {
-        setItems(cachedItems);
-        setIsLoading(false);
-        return;
-      }
-
-      // Se por acaso não estiver no cache (ex: acesso direto por link), buscamos
-      setIsLoading(true);
-      try {
-        const data = isMovieType 
-          ? await getMoviesByYear(currentUser.uid, year)
-          : await getSeriesByYear(currentUser.uid, year);
-        
-        setItems(data);
-      } catch (error) {
-        console.error("Erro ao buscar lista do ano:", error);
-      } finally {
-        setIsLoading(false);
-      }
+    // Se o usuário está logado e o Zustand ainda não baixou os dados desse ano, mandamos ele baixar!
+    if (currentUser && !isDataLoaded) {
+      fetchMediaForYear(year, currentUser.uid);
     }
+  }, [currentUser, year, isDataLoaded, fetchMediaForYear]);
 
-    resolveItems();
-  }, [currentUser, mediaType, year, isMovieType, cachedItems]);
-
-  if (isLoading) {
+  // Exibe o loading enquanto o Zustand trabalha
+  if (!isDataLoaded) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-app-bg">
         <div className="w-10 h-10 border-4 border-app-primary border-t-transparent rounded-full animate-spin"></div>
@@ -61,7 +39,8 @@ export default function MediaListContainer() {
     );
   }
 
-  const mappedItems: MediaListItem[] = items.map(item => {
+  // Mapeia os dados brutos para o formato que a lista visual espera
+  const mappedItems: MediaListItem[] = rawItems.map(item => {
     const title = 'title' in item ? item.title : (item as any).name;
     const originalTitle = 'originalTitle' in item ? item.originalTitle : (item as any).originalName;
 

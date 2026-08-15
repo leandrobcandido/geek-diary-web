@@ -5,22 +5,24 @@ import {
   getDoc, 
   setDoc, 
   updateDoc,
-  writeBatch, 
   arrayUnion, 
   arrayRemove, 
   query, 
   where,
-  limit, 
   getDocs,
   getDocFromCache,
-  getDocsFromCache
+  getDocsFromCache,
+  deleteDoc,
+  deleteField
 } from "firebase/firestore";
 import { app } from "./firebaseConfig";
 import { type Movie, type Series } from "../../types";
 
-// export const db = initializeFirestore(app, {
-//   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-// });
+// ============================================================================
+// INICIALIZAÇÃO
+// ============================================================================
+
+// Inicializa o Firestore de forma nativa e segura para qualquer navegador (incluindo iOS/Safari)
 export const db = getFirestore(app);
 
 const userDoc = (uid: string) => doc(db, 'users', uid);
@@ -28,7 +30,7 @@ const moviesColl = (uid: string) => collection(db, 'users', uid, 'watchedMovies'
 const seriesColl = (uid: string) => collection(db, 'users', uid, 'watchedSeries');
 
 // ============================================================================
-// SERVIÇOS DE USUÁRIO (Blindados contra rede lenta)
+// SERVIÇOS DE USUÁRIO
 // ============================================================================
 
 export const ensureUserExists = async (uid: string, email: string, name: string): Promise<void> => {
@@ -45,7 +47,6 @@ export const ensureUserExists = async (uid: string, email: string, name: string)
       }, { merge: true });
     }
   } catch (error) {
-    // 🔥 MÁGICA: Se der erro de rede, apenas ignoramos em vez de travar o app inteiro!
     console.warn("Rede instável: Ignorando verificação de usuário no boot.", error);
   }
 };
@@ -88,9 +89,8 @@ export const getAvailableYears = async (uid: string): Promise<number[]> => {
     
     if (snap.exists()) {
       const data = snap.data();
-      const years = data?.availableYears; // Extrai com segurança
+      const years = data?.availableYears; 
       
-      // Se for um array válido e tiver itens
       if (Array.isArray(years) && years.length > 0) {
         return years.sort((a, b) => a - b);
       }
@@ -117,70 +117,101 @@ export const getAvailableYears = async (uid: string): Promise<number[]> => {
 };
 
 // ============================================================================
-// LÓGICA DE LIMPEZA INTERNA
+// LÓGICA DE SINCRONIZAÇÃO E AGREGAÇÃO (O CORAÇÃO DA HOMEPAGE)
 // ============================================================================
 
-const cleanupYears = async (uid: string, year: number): Promise<void> => {
-  try {
-    const mQuery = query(moviesColl(uid), where('watchedYear', '==', year), limit(1));
-    const sQuery = query(seriesColl(uid), where('watchedYear', '==', year), limit(1));
+const syncYearSummary = async (uid: string, year: number): Promise<void> => {
+  const mQuery = query(moviesColl(uid), where('watchedYear', '==', year));
+  const sQuery = query(seriesColl(uid), where('watchedYear', '==', year));
 
-    const [moviesSnap, seriesSnap] = await Promise.all([getDocs(mQuery), getDocs(sQuery)]);
+  const [mSnap, sSnap] = await Promise.all([getDocs(mQuery), getDocs(sQuery)]);
 
-    if (moviesSnap.empty && seriesSnap.empty) {
-      await updateDoc(userDoc(uid), {
-        availableYears: arrayRemove(year)
-      });
+  const updates: Record<string, any> = {};
+
+  const processSnap = (snap: any, type: 'Movies' | 'Series') => {
+    if (snap.empty) {
+      updates[`summary${type}.${year}`] = deleteField();
+      return false;
     }
-  } catch (e) {
-    console.warn("Falha ao limpar anos não utilizados (tentará novamente depois).");
+
+    let count = 0;
+    let totalRating = 0;
+    let ratedCount = 0;
+    let latestDate = "";
+    let latestBackdrop = null;
+
+    snap.forEach((docSnap: any) => {
+      const data = docSnap.data();
+      count++;
+      
+      if (typeof data.userRating === 'number' && data.userRating > 0) {
+        totalRating += data.userRating;
+        ratedCount++;
+      }
+      
+      const currentDate = data.watchedDate || "";
+      if (currentDate >= latestDate) { 
+        latestDate = currentDate;
+        if (data.backdropPath) latestBackdrop = data.backdropPath;
+      }
+    });
+
+    updates[`summary${type}.${year}`] = {
+      count,
+      avgRating: ratedCount > 0 ? Number((totalRating / ratedCount).toFixed(1)) : 0,
+      lastWatchedDate: latestDate || null,
+      backdropPath: latestBackdrop
+    };
+    return true;
+  };
+
+  const hasMovies = processSnap(mSnap, 'Movies');
+  const hasSeries = processSnap(sSnap, 'Series');
+
+  if (!hasMovies && !hasSeries) {
+    updates.availableYears = arrayRemove(year);
+  } else {
+    updates.availableYears = arrayUnion(year);
   }
+
+  await updateDoc(userDoc(uid), updates);
 };
 
 // ============================================================================
-// SERVIÇOS DE FILMES & SÉRIES (Blindados com Fallback Offline)
+// SERVIÇOS DE FILMES
 // ============================================================================
-// As funções add/update/delete permanecem iguais pois dependem do Firestore resolver o sync offline sozinho.
 
 export const addMovie = async (uid: string, movie: Movie): Promise<void> => {
   try {
-    const batch = writeBatch(db);
     const movieRef = doc(moviesColl(uid)); 
     const { id, ...movieData } = movie; 
-    batch.set(movieRef, movieData);
-    batch.update(userDoc(uid), { availableYears: arrayUnion(movie.watchedYear) });
-    await batch.commit();
+    await setDoc(movieRef, movieData);
+    await syncYearSummary(uid, movie.watchedYear);
   } catch (e) { throw new Error(`Não foi possível salvar o filme: ${e}`); }
 };
 
 export const updateMovie = async (uid: string, movie: Movie, oldYear: number): Promise<void> => {
   if (!movie.id) throw new Error("ID do filme é obrigatório para atualização.");
   try {
-    const batch = writeBatch(db);
     const movieRef = doc(moviesColl(uid), movie.id);
     const { id, ...movieData } = movie;
-    batch.update(movieRef, movieData);
-    batch.update(userDoc(uid), { availableYears: arrayUnion(movie.watchedYear) });
-    await batch.commit();
-    if (oldYear !== movie.watchedYear) await cleanupYears(uid, oldYear);
+    await updateDoc(movieRef, movieData);
+    await syncYearSummary(uid, movie.watchedYear);
+    
+    if (oldYear !== movie.watchedYear) await syncYearSummary(uid, oldYear);
   } catch (e) { throw new Error(`Erro ao atualizar filme: ${e}`); }
 };
 
 export const deleteMovie = async (uid: string, movie: Movie): Promise<void> => {
   if (!movie.id) throw new Error("ID do filme é obrigatório para exclusão.");
   try {
-    const batch = writeBatch(db);
-    batch.delete(doc(moviesColl(uid), movie.id));
-    await batch.commit();
-    await cleanupYears(uid, movie.watchedYear);
+    await deleteDoc(doc(moviesColl(uid), movie.id));
+    await syncYearSummary(uid, movie.watchedYear);
   } catch (e) { throw new Error(`Erro ao excluir o filme: ${e}`); }
 };
 
 export const getMoviesByYear = async (uid: string, year: number): Promise<Movie[]> => {
-  const q = query(
-    moviesColl(uid), 
-    where('watchedYear', '==', year)
-  );
+  const q = query(moviesColl(uid), where('watchedYear', '==', year));
   
   try {
     const snap = await getDocs(q);
@@ -207,45 +238,41 @@ export const getMoviesByYear = async (uid: string, year: number): Promise<Movie[
   }
 };
 
+// ============================================================================
+// SERVIÇOS DE SÉRIES
+// ============================================================================
+
 export const addSeries = async (uid: string, series: Series): Promise<void> => {
   try {
-    const batch = writeBatch(db);
     const seriesRef = doc(seriesColl(uid));
     const { id, ...seriesData } = series;
-    batch.set(seriesRef, seriesData);
-    batch.update(userDoc(uid), { availableYears: arrayUnion(series.watchedYear) });
-    await batch.commit();
-  } catch (e) { throw new Error(`Não foi possível salvar a temporada: ${e}`); }
+    await setDoc(seriesRef, seriesData);
+    await syncYearSummary(uid, series.watchedYear);
+  } catch (e) { throw new Error(`Não foi possível salvar a série: ${e}`); }
 };
 
 export const updateSeries = async (uid: string, series: Series, oldYear: number): Promise<void> => {
   if (!series.id) throw new Error("ID da série é obrigatório para atualização.");
   try {
-    const batch = writeBatch(db);
     const seriesRef = doc(seriesColl(uid), series.id);
     const { id, ...seriesData } = series;
-    batch.update(seriesRef, seriesData);
-    batch.update(userDoc(uid), { availableYears: arrayUnion(series.watchedYear) });
-    await batch.commit();
-    if (oldYear !== series.watchedYear) await cleanupYears(uid, oldYear);
+    await updateDoc(seriesRef, seriesData);
+    await syncYearSummary(uid, series.watchedYear);
+    
+    if (oldYear !== series.watchedYear) await syncYearSummary(uid, oldYear);
   } catch (e) { throw new Error(`Erro ao atualizar série: ${e}`); }
 };
 
 export const deleteSeries = async (uid: string, series: Series): Promise<void> => {
   if (!series.id) throw new Error("ID da série é obrigatório para exclusão.");
   try {
-    const batch = writeBatch(db);
-    batch.delete(doc(seriesColl(uid), series.id));
-    await batch.commit();
-    await cleanupYears(uid, series.watchedYear);
+    await deleteDoc(doc(seriesColl(uid), series.id));
+    await syncYearSummary(uid, series.watchedYear);
   } catch (e) { throw new Error(`Erro ao excluir a série: ${e}`); }
 };
 
 export const getSeriesByYear = async (uid: string, year: number): Promise<Series[]> => {
-  const q = query(
-    seriesColl(uid), 
-    where('watchedYear', '==', year)
-  );
+  const q = query(seriesColl(uid), where('watchedYear', '==', year));
   
   try {
     const snap = await getDocs(q);

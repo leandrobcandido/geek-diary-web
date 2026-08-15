@@ -72,14 +72,13 @@ export default function MediaAddPage() {
     setIsSaving(true);
 
     try {
-      // O payload base fica livre de verificações complexas de tipo
       const basePayload = {
         id: String(richMedia.id),
         tmdbId: richMedia.id,
         status: richMedia.status || 'Assistido',
         backdropPath: richMedia.backdropPath,
         posterPath: richMedia.posterPath,
-        genres: richMedia.genres, // Já é um array de strings
+        genres: richMedia.genres,
         overview: richMedia.overview,
         watchedDate: new Date(watchedDate + 'T12:00:00'),
         watchedYear: targetYear,
@@ -112,7 +111,10 @@ export default function MediaAddPage() {
         });
       }
 
-      // Retorna para a tela de listagem limpando o cache
+      const store = await import('@/hooks/useDashboardData').then(m => m.useDashboardStore.getState());
+      await store.forceRefreshYear(targetYear, currentUser.uid);
+
+      // Retorna para a tela de listagem
       navigate(`/list/${mediaType}/${targetYear}`, { replace: true });
     } catch (error) {
       console.error("Erro ao inserir registro:", error);

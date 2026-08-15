@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings } from 'lucide-react'; // Setas removidas
+import { LogOut, Settings } from 'lucide-react';
 
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { logout } from '@/services/firebase/authService';
-import { MediaSummaryCard, type MediaItem } from '@/components/MediaSummaryCard';
+
+// ⚠️ ATENÇÃO: Nós vamos precisar ajustar esse componente no próximo passo!
+import { MediaSummaryCard } from '@/components/MediaSummaryCard';
 import { Button } from '@/components/ui/Button';
 
 import logo from '@/assets/logo.png';
@@ -13,28 +15,27 @@ import noSeriesImg from '@/assets/no-series.png';
 
 export default function HomePage() {
   const navigate = useNavigate();
+  
   const {
     isLoading,
     availableYears,
     referenceYear,
     setReferenceYear,
     setDesktopVisibleCount,
-    yearMovies,
-    yearSeries,
+    // 🔥 MÁGICA: Trocamos as listas completas pelos sumários levinhos
+    summaryMovies,
+    summarySeries,
     sortedYearsDesc,
     visibleDesktopYears,
-    fetchMediaForYear
   } = useDashboardData();
 
-  // Estados para capturar o gesto de arrastar (Swipe) Horizontal
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
-  
-  // Estado para controlar a direção da animação do carrossel
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right');
   
-  const handleCardNavigation = (year: number, type: 'movies' | 'series', items: MediaItem[]) => {
-    if (items.length > 0) {
+  // Lógica de navegação simplificada (olha apenas para a quantidade)
+  const handleCardNavigation = (year: number, type: 'movies' | 'series', count: number) => {
+    if (count > 0) {
       navigate(`/list/${type}/${year}`);
     } else {
       navigate(`/search/${type}/${year}`);
@@ -44,20 +45,17 @@ export default function HomePage() {
   const handlePreviousYear = () => {
     const currentIndex = availableYears.indexOf(referenceYear);
     if (currentIndex > 0) {
-      setSlideDirection('left'); // Anima vindo da esquerda
-      const prevYear = availableYears[currentIndex - 1];
-      setReferenceYear(prevYear);
-      fetchMediaForYear(prevYear);
+      setSlideDirection('left');
+      setReferenceYear(availableYears[currentIndex - 1]);
+      // fetchMediaForYear removido! Troca de telas agora é instantânea na memória.
     }
   };
 
   const handleNextYear = () => {
     const currentIndex = availableYears.indexOf(referenceYear);
     if (currentIndex < availableYears.length - 1) {
-      setSlideDirection('right'); // Anima vindo da direita
-      const nextYear = availableYears[currentIndex + 1];
-      setReferenceYear(nextYear);
-      fetchMediaForYear(nextYear);
+      setSlideDirection('right');
+      setReferenceYear(availableYears[currentIndex + 1]);
     }
   };
 
@@ -65,28 +63,21 @@ export default function HomePage() {
   // LÓGICA DE GESTOS (SWIPE HORIZONTAL)
   // ==========================================================================
   const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEndX(null); // Reseta o final do toque
-    setTouchStartX(e.targetTouches[0].clientX); // Captura o X inicial (Horizontal)
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEndX(e.targetTouches[0].clientX); // Vai atualizando o X enquanto arrasta
+    setTouchEndX(e.targetTouches[0].clientX);
   };
 
   const onTouchEnd = () => {
     if (!touchStartX || !touchEndX) return;
-    
     const distance = touchStartX - touchEndX;
-    const minSwipeDistance = 50; // Mínimo de 50px para considerar que foi um arrasto intencional
+    const minSwipeDistance = 50;
 
-    // Arrasto para a ESQUERDA (<--) Puxa o próximo item (Ano mais antigo)
-    if (distance > minSwipeDistance) {
-      handleNextYear();
-    } 
-    // Arrasto para a DIREITA (-->) Puxa o item anterior (Ano mais recente)
-    else if (distance < -minSwipeDistance) {
-      handlePreviousYear();
-    }
+    if (distance > minSwipeDistance) handleNextYear();
+    else if (distance < -minSwipeDistance) handlePreviousYear();
   };
 
   if (isLoading) {
@@ -135,52 +126,48 @@ export default function HomePage() {
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          {/* Card do Ano e Indicadores do Carrossel */}
           <div className="flex flex-col items-center justify-center bg-app-surface py-5 px-6 rounded-2xl mx-auto w-full max-w-xs select-none">
             <span className="text-3xl font-black text-center">{referenceYear}</span>
             
-            {/* Dots (Pontinhos) do Carrossel */}
             <div className="flex items-center justify-center gap-1.5 mt-3 flex-wrap">
               {availableYears.map((year) => (
                 <div 
                   key={year} 
                   className={`h-1.5 rounded-full transition-all duration-500 ${
-                    year === referenceYear 
-                      ? 'w-6 bg-app-primary' 
-                      : 'w-1.5 bg-app-text-muted/30'
+                    year === referenceYear ? 'w-6 bg-app-primary' : 'w-1.5 bg-app-text-muted/30'
                   }`}
                 />
               ))}
             </div>
           </div>
 
-          {/* Cards com Animação de Deslizamento (Slide) baseada na chave do Ano */}
           <div 
-            key={referenceYear} // <-- A mágica da animação no React acontece ao trocar essa key
+            key={referenceYear} 
             className={`grid grid-cols-1 gap-8 animate-in fade-in duration-300 ${
               slideDirection === 'left' ? 'slide-in-from-left-8' : 'slide-in-from-right-8'
             }`}
           >
+            {/* 🔥 Passamos o objeto 'summary' no lugar do array 'items' */}
             <MediaSummaryCard 
               title="Filmes"
-              items={yearMovies[referenceYear] || []}
+              summary={summaryMovies[referenceYear]}
               fallbackImg={noMoviesImg}
               onAddClick={() => navigate(`/search/movies/${referenceYear}`)}
-              onClick={() => handleCardNavigation(referenceYear, 'movies', yearMovies[referenceYear] || [])}
+              onClick={() => handleCardNavigation(referenceYear, 'movies', summaryMovies[referenceYear]?.count || 0)}
             />
             
             <MediaSummaryCard 
               title="Séries"
-              items={yearSeries[referenceYear] || []}
+              summary={summarySeries[referenceYear]}
               fallbackImg={noSeriesImg}
               onAddClick={() => navigate(`/search/series/${referenceYear}`)}
-              onClick={() => handleCardNavigation(referenceYear, 'series', yearSeries[referenceYear] || [])}
+              onClick={() => handleCardNavigation(referenceYear, 'series', summarySeries[referenceYear]?.count || 0)}
             />
           </div>
         </div>
 
         {/* ================================================================== */}
-        {/* VIEW DESKTOP (Inalterada) */}
+        {/* VIEW DESKTOP */}
         {/* ================================================================== */}
         <div className="hidden md:flex flex-col gap-12">
           {visibleDesktopYears.map((year) => (
@@ -193,18 +180,18 @@ export default function HomePage() {
               <div className="grid grid-cols-2 gap-8">
                 <MediaSummaryCard 
                   title="Filmes"
-                  items={yearMovies[year] || []}
+                  summary={summaryMovies[year]}
                   fallbackImg={noMoviesImg}
                   onAddClick={() => navigate(`/search/movies/${year}`)}
-                  onClick={() => handleCardNavigation(year, 'movies', yearMovies[year] || [])}
+                  onClick={() => handleCardNavigation(year, 'movies', summaryMovies[year]?.count || 0)}
                 />
                 
                 <MediaSummaryCard 
                   title="Séries"
-                  items={yearSeries[year] || []}
+                  summary={summarySeries[year]}
                   fallbackImg={noSeriesImg}
                   onAddClick={() => navigate(`/search/series/${year}`)}
-                  onClick={() => handleCardNavigation(year, 'series', yearSeries[year] || [])}
+                  onClick={() => handleCardNavigation(year, 'series', summarySeries[year]?.count || 0)}
                 />
               </div>
             </div>

@@ -1,39 +1,40 @@
 import { Calendar, Star, Film, Plus } from 'lucide-react';
 import { getFullImageURL } from '@/utils/imageUtils';
-import type { Movie, Series } from '@/types';
 
-export type MediaItem = Movie | Series;
+// 🔥 Definimos a tipagem exata do nosso novo objeto de sumário
+export interface MediaSummary {
+  count: number;
+  avgRating: number;
+  lastWatchedDate: any; // Pode ser Timestamp do Firebase ou String ISO
+  backdropPath: string | null;
+}
 
 interface SummaryCardProps {
   title: string;
-  items: MediaItem[];
+  summary?: MediaSummary; // Substituímos o items: MediaItem[] pelo summary
   fallbackImg: string;
   onAddClick: () => void;
   onClick: () => void;
 }
 
-export function MediaSummaryCard({ title, items, fallbackImg, onAddClick, onClick }: SummaryCardProps) {
-  const count = items.length;
+export function MediaSummaryCard({ title, summary, fallbackImg, onAddClick, onClick }: SummaryCardProps) {
+  // Extração O(1) super rápida!
+  const count = summary?.count || 0;
   const hasItems = count > 0;
   
-  const latestItem = hasItems ? items[0] : null;
-  const backdropUrl = latestItem?.backdropPath ? getFullImageURL(latestItem.backdropPath) : null;
+  // Pegamos a imagem em tamanho ideal para o card (w500 é leve e perfeito)
+  const backdropUrl = summary?.backdropPath ? getFullImageURL(summary.backdropPath, 'w500') : null;
   
-  const avgRating = hasItems 
-    ? (() => {
-        const ratedItems = items.filter(item => (item.userRating || 0) > 0);
-        if (ratedItems.length === 0) return '?';
-        const total = ratedItems.reduce((acc, curr) => acc + (curr.userRating || 0), 0);
-        return (total / ratedItems.length).toFixed(1);
-      })()
-    : '?';
+  // Média já calculada pelo nosso syncYearSummary
+  const avgRating = (summary?.avgRating && summary.avgRating > 0) ? summary.avgRating : '?';
 
-  const formatLatestDate = (dateData?: Date | { toDate: () => Date } | string | null) => {
+  const formatLatestDate = (dateData?: any) => {
     if (!dateData) return '--/--/----';
     try {
+      // Lida tanto com Timestamp do Firebase quanto com objetos Date ou Strings
       const dateObj = typeof dateData === 'object' && 'toDate' in dateData 
         ? dateData.toDate() 
-        : new Date(dateData as any);
+        : new Date(dateData);
         
       return isNaN(dateObj.getTime()) ? '--/--/----' : new Intl.DateTimeFormat('pt-BR').format(dateObj);
     } catch {
@@ -41,7 +42,7 @@ export function MediaSummaryCard({ title, items, fallbackImg, onAddClick, onClic
     }
   };
 
-  const latestDateStr = latestItem?.watchedDate ? formatLatestDate(latestItem.watchedDate) : '--/--/----';
+  const latestDateStr = hasItems ? formatLatestDate(summary?.lastWatchedDate) : '--/--/----';
 
   return (
     <div onClick={onClick} className="relative aspect-video rounded-2xl overflow-hidden shadow-md group cursor-pointer border border-app-input">
